@@ -33,16 +33,16 @@ $logger = Logger.new($stdout)
 # Invoking lambda from the Ruby SDK:
 # https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/Lambda/Client.html#invoke_async-instance_method
 #
-def lambda_handler(event:, context:)
+def lambda_handler(event:, _context:)
   $logger.info(event)
 
   validate_variables(event)
 
   records = (event['Records'] || [])
   records.each do |record|
-      bucket_name = record.dig('s3', 'bucket', 'name')
-      object_key = record.dig('s3', 'object', 'key')
-      process_record(event, bucket_name, object_key)
+    bucket_name = record.dig('s3', 'bucket', 'name')
+    object_key = record.dig('s3', 'object', 'key')
+    process_record(event, bucket_name, object_key)
   end
 
   $logger.info('Lambda completed successfully!')
@@ -51,7 +51,7 @@ end
 ##
 # Process a S3 record that was passed via the event
 #
-def process_record(event, bucket_name, object_key)
+def process_record(_event, bucket_name, object_key)
   return if bucket_name.nil? || object_key.nil?
 
   record_contents = get_record_contents(bucket_name, object_key)
@@ -59,10 +59,10 @@ def process_record(event, bucket_name, object_key)
   filename = object_key.split('/').last
   $logger.info("Processing file (#{object_key}) with filename (#{filename})")
 
-  record_contents['eval_tags'] = record_contents['eval_tags'].nil? ? 'HeimdallPusher' : record_contents['eval_tags'] + ',HeimdallPusher'
+  record_contents['eval_tags'] = record_contents['eval_tags'].nil? ? 'HeimdallPusher' : "#{record_contents['eval_tags']},HeimdallPusher"
 
   # Save to Heimdall
-  heimdall_user_password = get_heimdall_password
+  heimdall_user_password = heimdall_password
   user_id, token = get_heimdall_api_token(heimdall_user_password)
   push_to_heimdall(filename, hdf, user_id, token, record_contents['eval_tags'])
 
@@ -82,29 +82,29 @@ def save_hdf_to_bucket(hdf, bucket_name, filename)
   $logger.info('Saving processed HDF to bucket.')
   s3_client = Aws::S3::Client.new
   s3_client.put_object({
-    body: StringIO.new(hdf.to_json), 
-    bucket: bucket_name, 
-    key: "hdf/#{filename}", 
-  }) 
+                         body: StringIO.new(hdf.to_json),
+                         bucket: bucket_name,
+                         key: "hdf/#{filename}"
+                       })
 end
 
 def save_results_to_bucket(results, bucket_name, filename)
   $logger.info('Saving processed result to bucket.')
   s3_client = Aws::S3::Client.new
   s3_client.put_object({
-    body: StringIO.new(results.to_json), 
-    bucket: bucket_name, 
-    key: "processed/#{filename}", 
-  }) 
+                         body: StringIO.new(results.to_json),
+                         bucket: bucket_name,
+                         key: "processed/#{filename}"
+                       })
 end
 
 def remove_unprocessed_from_bucket(bucket_name, object_key)
   $logger.info('Removing unprocessed result from bucket.')
   s3_client = Aws::S3::Client.new
   s3_client.delete_object({
-    bucket: bucket_name, 
-    key: object_key, 
-  })
+                            bucket: bucket_name,
+                            key: object_key
+                          })
 end
 
 ##
@@ -136,7 +136,7 @@ end
 # specifying the SSM_ENDPOINT variable will allow reaching
 # SSM parameter store properly.
 #
-def get_heimdall_password
+def heimdall_password
   $logger.info('Fetching Heimdall Password Secret from SSM parameter store...')
   ssm_client = nil
 
@@ -165,8 +165,8 @@ end
 def get_heimdall_api_token(heimdall_user_password)
   $logger.info('Getting token from Heimdall Server...')
   payload = {
-    'email': ENV['HEIMDALL_API_USER'],
-    'password': heimdall_user_password
+    email: ENV['HEIMDALL_API_USER'],
+    password: heimdall_user_password
   }
   resp = Net::HTTP.post(
     URI("#{ENV['HEIMDALL_URL']}/authn/login"),
@@ -205,11 +205,11 @@ def push_to_heimdall(filename, hdf, user_id, token, eval_tags)
   $logger.info('Pushing HDF results to Heimdall Server...')
   url = URI("#{ENV['HEIMDALL_URL']}/evaluations")
   payload = {
-    'data': UploadIO.new(StringIO.new(hdf.to_json), 'application/json', filename),
-    'filename': filename,
-    'userId': user_id,
-    'public': ENV['HEIMDALL_PUBLIC'] || 'true',
-    'evaluationTags': eval_tags
+    data: UploadIO.new(StringIO.new(hdf.to_json), 'application/json', filename),
+    filename: filename,
+    userId: user_id,
+    public: ENV['HEIMDALL_PUBLIC'] || 'true',
+    evaluationTags: eval_tags
   }
   request = Net::HTTP::Post::Multipart.new(url.path, payload)
   request['Authorization'] = "Bearer #{token}"

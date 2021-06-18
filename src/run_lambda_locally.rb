@@ -14,19 +14,19 @@
 require_relative 'lambda_function'
 
 lambda_handler(
-    event: {
-        "Records" => [
-            {
-                "s3" => {
-                    "bucket" => {
-                        "name" => "inspec-results-bucket-dev-myzr"
-                    },
-                    "object" => {
-                        "key" => "unprocessed/2021-05-27_14-14-46_ConfigToHdf.json"
-                    }
-                }
-            }
-        ]
-    }, 
-    context: nil
+  event: {
+    'Records' => [
+      {
+        's3' => {
+          'bucket' => {
+            'name' => 'inspec-results-bucket-dev-myzr'
+          },
+          'object' => {
+            'key' => 'unprocessed/2021-05-27_14-14-46_ConfigToHdf.json'
+          }
+        }
+      }
+    ]
+  },
+  context: nil
 )
