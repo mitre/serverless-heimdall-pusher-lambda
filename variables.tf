@@ -38,12 +38,6 @@ variable "image_version" {
   default = null
 }
 
-variable "lambda_role_arn" {
-  description = "The ARN for the IAM role that will be assigned to the lambda"
-  type = string
-  default = ""
-}
-
 variable "lambda_name" {
   description = "The name of the lambda function"
   type = string

@@ -160,7 +160,7 @@ resource "null_resource" "push_image" {
       REPOSITORY_URL = aws_ecr_repository.mitre_heimdall_pusher.repository_url
       AWS_REGION     = data.aws_region.current.name
       AWS_ACCOUNT_ID = data.aws_caller_identity.current.account_id
-      REPO_NAME      = "mitre/serverless-heimdall-pusher-lambda"
+      REPO_NAME      = "ghcr.io/mitre/serverless-heimdall-pusher-lambda"
       IMAGE_TAG      = local.image_version
     }
   }
