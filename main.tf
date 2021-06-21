@@ -213,7 +213,7 @@ data "aws_s3_bucket" "results_bucket" {
 resource "aws_lambda_permission" "allow_bucket" {
   statement_id  = "AllowHeimdallPusherExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
-  function_name = module.HeimdallPusher.lambda_function_arn
+  function_name = module.serverless-heimdall-pusher-lambda.lambda_function_arn
   principal     = "s3.amazonaws.com"
   source_arn    = data.aws_s3_bucket.results_bucket.arn
 }
@@ -227,7 +227,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   bucket = var.results_bucket_id
 
   lambda_function {
-    lambda_function_arn = module.HeimdallPusher.lambda_function_arn
+    lambda_function_arn = module.serverless-heimdall-pusher-lambda.lambda_function_arn
     events              = ["s3:ObjectCreated:*"]
     filter_prefix       = "unprocessed/"
   }
