@@ -33,7 +33,8 @@ $logger = Logger.new($stdout)
 # Invoking lambda from the Ruby SDK:
 # https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/Lambda/Client.html#invoke_async-instance_method
 #
-def lambda_handler(event:, _context:)
+# rubocop:disable Lint/UnusedMethodArgument
+def lambda_handler(event:, context:)
   $logger.info(event)
 
   validate_variables(event)
@@ -47,6 +48,7 @@ def lambda_handler(event:, _context:)
 
   $logger.info('Lambda completed successfully!')
 end
+# rubocop:enable Lint/UnusedMethodArgument
 
 ##
 # Process a S3 record that was passed via the event
