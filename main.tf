@@ -193,6 +193,7 @@ module "serverless-heimdall-pusher-lambda" {
     HEIMDALL_URL            = var.heimdall_url
     HEIMDALL_API_USER       = var.heimdall_user
     HEIMDALL_PASS_SSM_PARAM = aws_ssm_parameter.heimdall_pass_ssm_param.name
+    HEIMDALL_PUBLIC         = var.heimdall_public
   }
 }
 

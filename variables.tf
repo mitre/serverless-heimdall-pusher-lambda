@@ -1,4 +1,10 @@
 
+variable "heimdall_public" {
+  description = "Set this to 'true' if results should be visible by anyone in Heimdall"
+  type        = string
+  default     = "false"
+}
+
 variable "heimdall_url" {
   description = "The url to the Heimdall server in http://... format"
   type        = string
