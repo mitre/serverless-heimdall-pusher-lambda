@@ -26,6 +26,12 @@ variable "results_bucket_id" {
   type        = string
 }
 
+variable "results_bucket_source_account_id" {
+  description = "The AWS account ID (without a hyphen) of the results S3 bucket source owner."
+  type        = string
+  default     = null
+}
+
 variable "subnet_ids" {
   description = "The subnet ids to deploy the lambda to."
   type        = list(string)

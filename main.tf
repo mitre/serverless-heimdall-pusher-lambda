@@ -212,11 +212,12 @@ data "aws_s3_bucket" "results_bucket" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission
 #
 resource "aws_lambda_permission" "allow_bucket" {
-  statement_id  = "AllowHeimdallPusherExecutionFromS3Bucket"
-  action        = "lambda:InvokeFunction"
-  function_name = module.serverless-heimdall-pusher-lambda.lambda_function_arn
-  principal     = "s3.amazonaws.com"
-  source_arn    = data.aws_s3_bucket.results_bucket.arn
+  statement_id   = "AllowHeimdallPusherExecutionFromS3Bucket"
+  action         = "lambda:InvokeFunction"
+  function_name  = module.serverless-heimdall-pusher-lambda.lambda_function_arn
+  principal      = "s3.amazonaws.com"
+  source_arn     = data.aws_s3_bucket.results_bucket.arn
+  source_account = var.results_bucket_source_account_id != null ? var.results_bucket_source_account_id : data.aws_caller_identity.current.account_id
 }
 
 ##
