@@ -66,7 +66,7 @@ def process_record(_event, bucket_name, object_key)
   # Save to Heimdall
   heimdall_user_password = heimdall_password
   user_id, token = get_heimdall_api_token(heimdall_user_password)
-  push_to_heimdall(filename, hdf, user_id, token, record_contents['eval_tags'])
+  push_to_heimdall(filename, hdf, user_id, token, record_contents['eval_tags'], record_contents['groups'])
 
   # Save to S3
   save_results_to_bucket(record_contents, bucket_name, filename)
@@ -203,7 +203,7 @@ end
 #   -H "Authorization: Bearer <token>" \
 #   "http://my-heimdall/evaluations"
 #
-def push_to_heimdall(filename, hdf, user_id, token, eval_tags)
+def push_to_heimdall(filename, hdf, user_id, token, eval_tags, groups)
   $logger.info('Pushing HDF results to Heimdall Server...')
   url = URI("#{ENV['HEIMDALL_URL']}/evaluations")
   payload = {
@@ -213,6 +213,8 @@ def push_to_heimdall(filename, hdf, user_id, token, eval_tags)
     public: ENV['HEIMDALL_PUBLIC'] || 'true',
     evaluationTags: eval_tags
   }
+  # Groups are broken out separately because groups may be nil/omitted
+  payload['groups'] = groups if groups
   request = Net::HTTP::Post::Multipart.new(url.path, payload)
   request['Authorization'] = "Bearer #{token}"
   response = Net::HTTP.start(url.host, url.port) do |http|
