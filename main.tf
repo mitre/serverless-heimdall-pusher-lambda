@@ -45,19 +45,9 @@ resource "aws_kms_key" "HeimdallPassKmsKey" {
   }
 }
 
-##
-# KMS key for encrypting lambda log data
-#
-# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key
-#
-resource "aws_kms_key" "ServerlessHeimdallPusherLogsKmsKey" {
-  description             = "The KMS key used to encrypt ConfigToHdf's logs"
-  deletion_window_in_days = 10
-  enable_key_rotation     = true
-
-  tags = {
-    Name = "ServerlessHeimdallPusherLogsKmsKey"
-  }
+resource "aws_kms_alias" "HeimdallPusherPassKmsKey" {
+  name          = "alias/HeimdallPusherPassKmsKey"
+  target_key_id = aws_kms_key.HeimdallPassKmsKey.key_id
 }
 
 ##
@@ -195,7 +185,7 @@ module "serverless-heimdall-pusher-lambda" {
   image_uri      = "${aws_ecr_repository.mitre_heimdall_pusher.repository_url}:${local.image_version}"
   package_type   = "Image"
 
-  cloudwatch_logs_kms_key_id        = aws_kms_key.ServerlessHeimdallPusherLogsKmsKey.key_id
+  cloudwatch_logs_kms_key_id        = var.cloudwatch_logs_kms_key_id
   cloudwatch_logs_retention_in_days = 30
 
   environment_variables = {

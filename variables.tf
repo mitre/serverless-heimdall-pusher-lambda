@@ -32,6 +32,12 @@ variable "results_bucket_source_account_id" {
   default     = null
 }
 
+variable "cloudwatch_logs_kms_key_id" {
+  description = "The ARN of the KMS key to use for lambda log encryption."
+  type        = string
+  default     = null
+}
+
 variable "subnet_ids" {
   description = "The subnet ids to deploy the lambda to."
   type        = list(string)
