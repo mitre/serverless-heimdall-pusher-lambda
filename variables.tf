@@ -53,5 +53,5 @@ variable "image_version" {
 variable "lambda_name" {
   description = "The name of the lambda function"
   type = string
-  default = "serverless-inspec-lambda"
+  default = "ServerlessHeimdallPusher"
 }

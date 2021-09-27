@@ -38,9 +38,25 @@ resource "aws_ecr_repository" "mitre_heimdall_pusher" {
 resource "aws_kms_key" "HeimdallPassKmsKey" {
   description             = "The KMS key used to encrypt/decrypt HeimdallPusher's Heimdall account password "
   deletion_window_in_days = 10
+  enable_key_rotation     = true
 
   tags = {
     Name = "HeimdallPusherPassKmsKey"
+  }
+}
+
+##
+# KMS key for encrypting lambda log data
+#
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key
+#
+resource "aws_kms_key" "ServerlessHeimdallPusherLogsKmsKey" {
+  description             = "The KMS key used to encrypt ConfigToHdf's logs"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+
+  tags = {
+    Name = "ServerlessHeimdallPusherLogsKmsKey"
   }
 }
 
@@ -58,7 +74,51 @@ resource "aws_ssm_parameter" "heimdall_pass_ssm_param" {
 }
 
 ##
-# HeimdallPusher Role to Invoke HeimdallPusher Lambda function 
+# HeimdallPusher IAM Policy to Invoke HeimdallPusher Lambda function 
+#
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy
+#
+resource "aws_iam_policy" "serverless_heimdall_pusher_lambda_policy" {
+  name        = "ServerlessHeimdallPusherLambdaPolicy"
+  path        = "/"
+  description = "Policy that provides proper lambda permissions for the serverless_heimdall_pusher_lambda_role"
+
+  # Permissions
+  # - ssm:GetParameter => allows decryption of Heimdall Password
+  # - kms:Decrypt => allows decryption of Heimdall Password
+  # - s3:GetObject,PutObject,DeleteObject => Allow interaction with results S3 bucket
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ssm:GetParameter"
+        ]
+        Effect   = "Allow"
+        Resource = aws_ssm_parameter.heimdall_pass_ssm_param.arn
+      },
+      {
+        Action = [
+          "kms:Decrypt"
+        ]
+        Effect   = "Allow"
+        Resource = aws_kms_key.HeimdallPassKmsKey.arn
+      },
+      {
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Effect   = "Allow"
+        Resource = "${data.aws_s3_bucket.results_bucket.arn}/*"
+      }
+    ]
+  })
+}
+
+##
+# HeimdallPusher Role to Invoke HeimdallPusher Lambda function
 #
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
 #
@@ -68,7 +128,8 @@ resource "aws_iam_role" "serverless_heimdall_pusher_lambda_role" {
   # Allow execution of the lambda function
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-    "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+    "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+    aws_iam_policy.serverless_heimdall_pusher_lambda_policy.arn
   ]
 
   # Allow assume role permission for lambda
@@ -85,61 +146,6 @@ resource "aws_iam_role" "serverless_heimdall_pusher_lambda_role" {
       }
     ]
   })
-
-  # Allow READ access to Heimdall password SSM parameter
-  inline_policy {
-    name = "HeimdallPassSsmReadAccess"
-
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Action = [
-            "ssm:GetParameter"
-          ]
-          Effect   = "Allow"
-          Resource = aws_ssm_parameter.heimdall_pass_ssm_param.arn
-        }
-      ]
-    })
-  }
-
-  inline_policy {
-    name = "AllowHeimdallPassKmsKeyDecrypt"
-
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Action = [
-            "kms:Decrypt"
-          ]
-          Effect   = "Allow"
-          Resource = aws_kms_key.HeimdallPassKmsKey.arn
-        }
-      ]
-    })
-  }
-
-  # Allow S3 read and write access to InSpec results bucket
-  inline_policy {
-    name = "S3ResultsAccess"
-
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Action = [
-            "s3:GetObject",
-            "s3:PutObject",
-            "s3:DeleteObject"
-          ]
-          Effect   = "Allow"
-          Resource = "${data.aws_s3_bucket.results_bucket.arn}/*"
-        }
-      ]
-    })
-  }
 }
 
 resource "null_resource" "push_image" {
@@ -188,6 +194,9 @@ module "serverless-heimdall-pusher-lambda" {
   create_package = false
   image_uri      = "${aws_ecr_repository.mitre_heimdall_pusher.repository_url}:${local.image_version}"
   package_type   = "Image"
+
+  cloudwatch_logs_kms_key_id        = aws_kms_key.ServerlessHeimdallPusherLogsKmsKey.key_id
+  cloudwatch_logs_retention_in_days = 30
 
   environment_variables = {
     HEIMDALL_URL            = var.heimdall_url
