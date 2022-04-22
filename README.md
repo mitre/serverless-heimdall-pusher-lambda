@@ -1,6 +1,6 @@
 # Serverless Heimdall Pusher (AWS)
 
-This lambda function is meant to allow you listen to and S3 bucket for HDF results and push them to a Heimdall Server.
+This lambda function is meant to allow you listen to an S3 bucket for HDF results and push them to a Heimdall Server.
 
 ## Table of Contents
 - [How Does This Lambda Work?](#how-does-this-lambda-work)
